@@ -1,0 +1,183 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">LinePulse AI architecture</title>
+  <desc id="desc">One-page diagram separating organizer preparation inputs from the two-day team build, followed by runtime analytics and a human-controlled maintenance feedback loop.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071A2A"/>
+      <stop offset="1" stop-color="#0B2631"/>
+    </linearGradient>
+    <linearGradient id="hero" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#23C7B7"/>
+      <stop offset="1" stop-color="#77E0A7"/>
+    </linearGradient>
+    <filter id="shadow" x="-15%" y="-15%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#02070D" flood-opacity="0.32"/>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#66D9CC"/>
+    </marker>
+    <marker id="arrowMuted" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#88A5B5"/>
+    </marker>
+    <style>
+      .title { font: 700 38px Inter, Segoe UI, Arial, sans-serif; fill: #F4FAFC; letter-spacing: .2px; }
+      .subtitle { font: 400 17px Inter, Segoe UI, Arial, sans-serif; fill: #AFC3CE; }
+      .section { font: 700 15px Inter, Segoe UI, Arial, sans-serif; fill: #8FE7D8; letter-spacing: 1.7px; }
+      .cardTitle { font: 700 18px Inter, Segoe UI, Arial, sans-serif; fill: #F4FAFC; }
+      .body { font: 400 14px Inter, Segoe UI, Arial, sans-serif; fill: #C6D5DC; }
+      .small { font: 400 12px Inter, Segoe UI, Arial, sans-serif; fill: #9FB6C2; }
+      .chip { font: 700 12px Inter, Segoe UI, Arial, sans-serif; letter-spacing: .6px; }
+      .num { font: 700 15px Inter, Segoe UI, Arial, sans-serif; fill: #071A2A; }
+      .node { fill: #102F3B; stroke: #285565; stroke-width: 1.3; }
+      .nodeTeal { fill: #0D3B43; stroke: #36C8B9; stroke-width: 1.5; }
+      .nodeHuman { fill: #243642; stroke: #F2BC57; stroke-width: 1.5; }
+      .arrow { fill: none; stroke: #66D9CC; stroke-width: 2.3; marker-end: url(#arrow); }
+      .arrowMuted { fill: none; stroke: #88A5B5; stroke-width: 2; marker-end: url(#arrowMuted); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#background)"/>
+  <rect x="0" y="0" width="12" height="900" fill="url(#hero)"/>
+
+  <text x="70" y="64" class="title">LinePulse AI</text>
+  <text x="70" y="94" class="subtitle">Explainable failure intelligence for 45 Class A assets — the AI recommends; the Equipment Owner decides.</text>
+  <rect x="1308" y="42" width="214" height="34" rx="17" fill="#113B38" stroke="#2ED4BE"/>
+  <text x="1415" y="64" text-anchor="middle" class="chip" fill="#9CF2E2">ONE-PAGE ARCHITECTURE</text>
+
+  <text x="70" y="141" class="section">SCOPE &amp; PROVENANCE</text>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="160" width="448" height="190" rx="18" class="node"/>
+    <rect x="70" y="160" width="448" height="9" rx="5" fill="#7892A1"/>
+    <rect x="92" y="184" width="28" height="28" rx="14" fill="#9BB2BE"/>
+    <text x="106" y="203" text-anchor="middle" class="num">1</text>
+    <text x="134" y="204" class="cardTitle">Preparation window · source of truth</text>
+    <text x="94" y="239" class="body">• Participant Guide — challenge, deliverables, judging</text>
+    <text x="94" y="266" class="body">• Synthetic Dataset Report — semantics and quality cases</text>
+    <text x="94" y="293" class="body">• Official workbook — six operational sheets, 45 assets</text>
+    <text x="94" y="324" class="small">Only the organizer pack enters analytics · no previous dataset</text>
+  </g>
+
+  <path d="M523 255 L561 255" class="arrow"/>
+
+  <g filter="url(#shadow)">
+    <rect x="566" y="160" width="956" height="190" rx="18" class="nodeTeal"/>
+    <rect x="566" y="160" width="956" height="9" rx="5" fill="url(#hero)"/>
+    <rect x="588" y="184" width="28" height="28" rx="14" fill="#56D5C6"/>
+    <text x="602" y="203" text-anchor="middle" class="num">2</text>
+    <text x="630" y="204" class="cardTitle">Two-day build · team implementation</text>
+
+    <rect x="590" y="228" width="282" height="94" rx="12" fill="#133844" stroke="#2E6070"/>
+    <text x="608" y="252" class="chip" fill="#8FE7D8">DATA TRUST</text>
+    <text x="608" y="278" class="body">Schema validation · six-sheet join</text>
+    <text x="608" y="302" class="body">Missing / duplicate / orphan findings</text>
+
+    <rect x="890" y="228" width="292" height="94" rx="12" fill="#133844" stroke="#2E6070"/>
+    <text x="908" y="252" class="chip" fill="#8FE7D8">HYBRID INTELLIGENCE</text>
+    <text x="908" y="278" class="body">Auxiliary XGBoost · held-out assets</text>
+    <text x="908" y="302" class="body">Peer thresholds · trends · horizon</text>
+
+    <rect x="1200" y="228" width="298" height="94" rx="12" fill="#133844" stroke="#2E6070"/>
+    <text x="1218" y="252" class="chip" fill="#8FE7D8">PRODUCT &amp; PROOF</text>
+    <text x="1218" y="278" class="body">Streamlit · FastAPI · SQLite audit</text>
+    <text x="1218" y="302" class="body">Tests · documentation · demo flow</text>
+  </g>
+
+  <text x="70" y="399" class="section">RUNTIME DECISION FLOW</text>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="421" width="280" height="134" rx="16" class="node"/>
+    <text x="94" y="452" class="cardTitle">Official operational data</text>
+    <text x="94" y="481" class="body">Sensors · usage · maintenance</text>
+    <text x="94" y="505" class="body">production · quality · impact</text>
+    <text x="94" y="531" class="small">Schema-driven; IDs excluded from features</text>
+  </g>
+
+  <path d="M354 488 L398 488" class="arrow"/>
+
+  <g filter="url(#shadow)">
+    <rect x="402" y="421" width="280" height="134" rx="16" class="node"/>
+    <text x="426" y="452" class="cardTitle">Data-trust gate</text>
+    <text x="426" y="481" class="body">Validate · aggregate · join</text>
+    <text x="426" y="505" class="body">flag gaps · score confidence</text>
+    <text x="426" y="531" class="small">Missing never silently means healthy</text>
+  </g>
+
+  <path d="M686 488 L730 488" class="arrow"/>
+
+  <g filter="url(#shadow)">
+    <rect x="734" y="421" width="318" height="134" rx="16" class="nodeTeal"/>
+    <text x="758" y="452" class="cardTitle">Hybrid analytics</text>
+    <text x="758" y="481" class="body">XGBoost corroboration · 0% RAG weight</text>
+    <text x="758" y="505" class="body">peer levels + slopes + due state</text>
+    <text x="758" y="531" class="small">Core RAG works without ScenarioFlag</text>
+  </g>
+
+  <path d="M1056 488 L1100 488" class="arrow"/>
+
+  <g filter="url(#shadow)">
+    <rect x="1104" y="421" width="418" height="134" rx="16" class="nodeTeal"/>
+    <text x="1128" y="452" class="cardTitle">Explainable attention result</text>
+    <circle cx="1138" cy="482" r="8" fill="#E5484D"/>
+    <circle cx="1164" cy="482" r="8" fill="#F5A524"/>
+    <circle cx="1190" cy="482" r="8" fill="#27AE60"/>
+    <text x="1210" y="487" class="body">Risk + business impact + confidence</text>
+    <text x="1128" y="514" class="body">Evidence Passport · mode hypothesis · action</text>
+    <text x="1128" y="538" class="small">Planning horizon ≠ true RUL</text>
+  </g>
+
+  <text x="70" y="605" class="section">HUMAN-CONTROLLED LEARNING LOOP</text>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="628" width="252" height="120" rx="16" class="node"/>
+    <text x="94" y="660" class="cardTitle">Dashboard / API</text>
+    <text x="94" y="689" class="body">Shows evidence, uncertainty,</text>
+    <text x="94" y="713" class="body">what-if preview and recommendation</text>
+  </g>
+
+  <path d="M326 688 L365 688" class="arrow"/>
+
+  <g filter="url(#shadow)">
+    <rect x="369" y="628" width="274" height="120" rx="16" class="nodeHuman"/>
+    <text x="393" y="660" class="cardTitle">Equipment Owner</text>
+    <text x="393" y="689" class="body">Approve · modify · reject</text>
+    <text x="393" y="713" class="small">Explicit human decision gate</text>
+  </g>
+
+  <path d="M647 688 L686 688" class="arrowMuted"/>
+
+  <g filter="url(#shadow)">
+    <rect x="690" y="628" width="246" height="120" rx="16" class="nodeHuman"/>
+    <text x="714" y="660" class="cardTitle">Maintenance</text>
+    <text x="714" y="689" class="body">Occurs in approved process</text>
+    <text x="714" y="713" class="small">Outside LinePulse AI</text>
+  </g>
+
+  <path d="M940 688 L979 688" class="arrowMuted"/>
+
+  <g filter="url(#shadow)">
+    <rect x="983" y="628" width="250" height="120" rx="16" class="nodeHuman"/>
+    <text x="1007" y="660" class="cardTitle">Verified outcome</text>
+    <text x="1007" y="689" class="body">Human confirms result</text>
+    <text x="1007" y="713" class="small">Assessment remains immutable</text>
+  </g>
+
+  <path d="M1237 688 L1276 688" class="arrow"/>
+
+  <g filter="url(#shadow)">
+    <rect x="1280" y="628" width="242" height="120" rx="16" class="nodeTeal"/>
+    <text x="1304" y="660" class="cardTitle">Feedback memory</text>
+    <text x="1304" y="689" class="body">Improves future action support</text>
+    <text x="1304" y="713" class="small">Governed retraining candidate</text>
+  </g>
+
+  <path d="M1401 753 C1401 810 893 816 893 560" fill="none" stroke="#66D9CC" stroke-width="2" stroke-dasharray="7 7" marker-end="url(#arrow)"/>
+  <text x="1125" y="808" text-anchor="middle" class="small">Only human-verified outcomes return as learning evidence</text>
+
+  <rect x="70" y="799" width="390" height="54" rx="12" fill="#351F27" stroke="#E5484D" stroke-width="1.4"/>
+  <text x="94" y="823" class="chip" fill="#FF9095">SAFETY BOUNDARY</text>
+  <text x="94" y="844" class="body">No PLC write · no auto shutdown · no auto work order</text>
+
+  <text x="1522" y="840" text-anchor="end" class="small">Source of truth: official Guide + Dataset Report + Workbook</text>
+  <text x="1522" y="861" text-anchor="end" class="small">100% synthetic · local-first · reproducible</text>
+</svg>
