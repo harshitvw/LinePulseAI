@@ -68,6 +68,10 @@ Then open:
 
 If port 8501 is already used, run the frontend with `--server.port 8502` and open <http://127.0.0.1:8502>.
 
+## Live data simulator
+
+For a timed synthetic sensor replay during the demo, use [docs/LIVE_DATA_SIMULATOR.md](docs/LIVE_DATA_SIMULATOR.md). It appends increasing temperature, vibration, current, cycle-time, and pressure signals to the workbook, creates a backup before modifying the original file, and provides a cleanup command to restore it afterward.
+
 ## Five-minute explanation
 
 1. The official workbook contains 45 critical assets and three weekly observations across six operational sheets.
@@ -85,6 +89,7 @@ If port 8501 is already used, run the frontend with `--server.port 8502` and ope
 | `data/source/Synthetic_Dataset.xlsx` | Unmodified official model/data source |
 | `src/linepulse/` | Data validation, feature engineering, model inference, scoring, explanations, and decision logic |
 | `scripts/train_model.py` | Trains and saves the XGBoost degradation detector |
+| `scripts/live_demo_replay.py` | Reversible synthetic live-signal replay for the demo |
 | `artifacts/degradation_model.joblib` | Generated model bundle and metadata; reproducible from the official workbook |
 | `api/main.py` | Optional FastAPI integration adapter |
 | `dashboard/app.py` | Streamlit frontend using the same core service directly |
@@ -93,7 +98,7 @@ If port 8501 is already used, run the frontend with `--server.port 8502` and ope
 | `docs/` | Beginner guide, architecture, assumptions, demo script, model card, and data dictionary |
 | `reference/` | Organizer guide and dataset report, kept for traceability |
 
-Start with [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md) if you are new to the project. Use [docs/DEMO_WALKTHROUGH.md](docs/DEMO_WALKTHROUGH.md) before presenting to judges.
+Start with [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md) if you are new to the project. Use [docs/DEMO_WALKTHROUGH.md](docs/DEMO_WALKTHROUGH.md) before presenting to judges. Use [docs/LIVE_DATA_SIMULATOR.md](docs/LIVE_DATA_SIMULATOR.md) for the synthetic live replay.
 
 ## Safety and scope
 
