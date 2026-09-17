@@ -980,6 +980,7 @@ elif workspace == "Asset review":
             "note",
             default="No matching verified maintenance outcome is available yet.",
         )
+        st.markdown("<div style='height:.75rem'></div>", unsafe_allow_html=True)
         with st.expander("Verified outcome memory · similar completed cases"):
             st.write(str(learning_copy))
             if learning_records and not (len(learning_records) == 1 and learning_records[0] == learning_map):
