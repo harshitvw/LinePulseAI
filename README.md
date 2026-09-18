@@ -68,6 +68,17 @@ Then open:
 
 If port 8501 is already used, run the frontend with `--server.port 8502` and open <http://127.0.0.1:8502>.
 
+## OpenAI conversational assistant
+
+The optional **Ask AI** workspace answers questions about the selected Class A asset, its visible evidence, alerts, planning horizon, recommendation, and the human decision workflow. It uses the standard OpenAI Responses API. Add your OpenAI API key to a local `.env` file (never commit it):
+
+```dotenv
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-5-mini
+```
+
+Restart the dashboard, then open **Ask AI**. The app constructs a normal `OpenAI()` client and calls `client.responses.create(...)`; it receives only the dashboard's portfolio summary and selected-asset evidence. It does not control equipment, access local files, or replace a qualified maintenance decision. The implementation uses the OpenAI Responses API. [OpenAI's Responses API documentation](https://developers.openai.com/api/reference/resources/responses) and [GPT-5 Mini model documentation](https://developers.openai.com/api/docs/models/gpt-5-mini) describe the API and default model.
+
 ## Live data simulator
 
 For a timed synthetic sensor replay during the demo, use [docs/LIVE_DATA_SIMULATOR.md](docs/LIVE_DATA_SIMULATOR.md). It appends increasing temperature, vibration, current, cycle-time, and pressure signals to the workbook, creates a backup before modifying the original file, and provides a cleanup command to restore it afterward.

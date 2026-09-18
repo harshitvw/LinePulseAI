@@ -16,6 +16,12 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from linepulse.service import LinePulseService
+from linepulse.openai_assistant import (
+    AssistantUnavailableError,
+    answer_question,
+    build_assistant_context,
+    is_configured,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -640,7 +646,7 @@ legacy_workspaces = {
 }
 if st.session_state.get("workspace") in legacy_workspaces:
     st.session_state["workspace"] = legacy_workspaces[st.session_state["workspace"]]
-if st.session_state.get("workspace") not in {"Overview", "Asset review", "Work verification"}:
+if st.session_state.get("workspace") not in {"Overview", "Asset review", "Work verification", "Ask AI"}:
     st.session_state["workspace"] = "Overview"
 if st.session_state.pop("_open_asset_next", False):
     st.session_state["workspace"] = "Asset review"
@@ -677,7 +683,7 @@ with st.container(border=True):
     with nav_col:
         workspace = st.segmented_control(
             "Navigation",
-            ["Overview", "Asset review", "Work verification"],
+            ["Overview", "Asset review", "Work verification", "Ask AI"],
             key="workspace",
             label_visibility="collapsed",
         ) or "Overview"
@@ -688,6 +694,7 @@ page_heading, page_subtitle = {
     "Overview": ("Asset overview", "Class A maintenance priorities"),
     "Asset review": ("Asset review", "Evidence and recommended action"),
     "Work verification": ("Work verification", "Completed maintenance outcomes"),
+    "Ask AI": ("Ask AI", "Ask questions about the selected asset and maintenance workflow"),
 }[workspace]
 st.markdown(
     f"""
@@ -1160,3 +1167,53 @@ elif workspace == "Work verification":
             st.dataframe(cases_frame[preferred + remaining], use_container_width=True, hide_index=True)
     else:
         st.info("No human decision has been recorded yet. Open Asset review to begin.")
+
+
+elif workspace == "Ask AI":
+    selected_asset_for_chat = asset_by_id[st.session_state.selected_asset]
+    chat_context = build_assistant_context(overview, selected_asset_for_chat)
+    st.info(
+        "This assistant explains the current LinePulse evidence. It uses synthetic demo data, "
+        "does not control equipment, and does not replace a qualified maintenance decision."
+    )
+    st.caption(
+        f"Context: {selected_asset_for_chat['asset_id']} · {selected_asset_for_chat['status']} · "
+        f"{selected_asset_for_chat['failure_mode']}"
+    )
+
+    if not is_configured():
+        st.warning(
+            "The assistant is not configured. Add OPENAI_API_KEY to .env, then restart the dashboard."
+        )
+    else:
+        st.caption("OpenAI model: " + os.getenv("OPENAI_MODEL", "gpt-5-mini"))
+
+    if "linepulse_chat_messages" not in st.session_state:
+        st.session_state.linepulse_chat_messages = []
+    clear_col, _ = st.columns([1, 5])
+    with clear_col:
+        if st.button("Clear chat", use_container_width=True):
+            st.session_state.linepulse_chat_messages = []
+            st.rerun()
+
+    for message in st.session_state.linepulse_chat_messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    question = st.chat_input("Ask about the selected asset, its alert, or the maintenance workflow")
+    if question:
+        st.session_state.linepulse_chat_messages.append({"role": "user", "content": question})
+        with st.chat_message("user"):
+            st.markdown(question)
+        with st.chat_message("assistant"):
+            with st.spinner("Reviewing the dashboard evidence…"):
+                try:
+                    answer = answer_question(st.session_state.linepulse_chat_messages, chat_context)
+                    st.markdown(answer)
+                    st.session_state.linepulse_chat_messages.append(
+                        {"role": "assistant", "content": answer}
+                    )
+                except AssistantUnavailableError as exc:
+                    st.error(str(exc))
+                except Exception as exc:
+                    _user_error("The AI assistant could not answer the question.", exc)

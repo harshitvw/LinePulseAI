@@ -3,6 +3,7 @@ pyproject.toml
 src/linepulse/__init__.py
 src/linepulse/analytics.py
 src/linepulse/data.py
+src/linepulse/openai_assistant.py
 src/linepulse/py.typed
 src/linepulse/repository.py
 src/linepulse/risk.py
@@ -15,3 +16,4 @@ src/linepulse_ai.egg-info/top_level.txt
 tests/test_api.py
 tests/test_core.py
 tests/test_generalization.py
+tests/test_openai_assistant.py
