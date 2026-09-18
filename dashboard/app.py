@@ -1183,10 +1183,11 @@ elif workspace == "Ask AI":
 
     if not is_configured():
         st.warning(
-            "The assistant is not configured. Add OPENAI_API_KEY to .env, then restart the dashboard."
+            "The assistant is not configured. Add VW_LLM_CLIENT_ID, VW_LLM_CLIENT_SECRET, "
+            "and VW_LLM_API_KEY to .env, then restart the dashboard."
         )
     else:
-        st.caption("OpenAI model: " + os.getenv("OPENAI_MODEL", "gpt-5-mini"))
+        st.caption("VW LLM model: " + os.getenv("OPENAI_MODEL", "gpt-4o"))
 
     if "linepulse_chat_messages" not in st.session_state:
         st.session_state.linepulse_chat_messages = []

@@ -1,4 +1,4 @@
-"""Standard OpenAI Responses API support for the LinePulse dashboard."""
+"""VW LLM gateway support for the LinePulse dashboard."""
 
 from __future__ import annotations
 
@@ -6,9 +6,12 @@ import json
 import os
 from typing import Any, Mapping, Sequence
 
+import httpx
 from dotenv import load_dotenv
 
-DEFAULT_MODEL = "gpt-5-mini"
+DEFAULT_MODEL = "gpt-4o"
+IDP_TOKEN_URL = "https://idp.cloud.vwgroup.com/auth/realms/kums-mfa/protocol/openid-connect/token"
+LLM_BASE_URL = "https://llmapi.ai.vwgroup.com"
 MAX_HISTORY_MESSAGES = 8
 MAX_MESSAGE_CHARS = 2_000
 
@@ -24,10 +27,51 @@ def _load_environment() -> None:
 
 
 def is_configured() -> bool:
-    """Return whether the standard OpenAI API key is available locally."""
+    """Return whether the VW gateway credentials are available locally."""
 
     _load_environment()
-    return bool(os.getenv("OPENAI_API_KEY", "").strip())
+    return all(
+        os.getenv(name, "").strip()
+        for name in ("VW_LLM_CLIENT_ID", "VW_LLM_CLIENT_SECRET", "VW_LLM_API_KEY")
+    )
+
+
+def _credential(name: str) -> str:
+    value = os.getenv(name, "").strip()
+    if not value:
+        raise AssistantUnavailableError(
+            "Add VW_LLM_CLIENT_ID, VW_LLM_CLIENT_SECRET, and VW_LLM_API_KEY to .env, "
+            "then restart the dashboard."
+        )
+    return value
+
+
+def get_token() -> str:
+    """Obtain a short-lived CloudIDP token for the VW LLM gateway."""
+
+    try:
+        response = httpx.post(
+            IDP_TOKEN_URL,
+            data={
+                "client_id": _credential("VW_LLM_CLIENT_ID"),
+                "client_secret": _credential("VW_LLM_CLIENT_SECRET"),
+                "grant_type": "client_credentials",
+            },
+            timeout=20.0,
+        )
+        response.raise_for_status()
+        token = str(response.json().get("access_token", "")).strip()
+    except httpx.HTTPStatusError as exc:
+        raise AssistantUnavailableError(
+            "CloudIDP rejected the configured client credentials."
+        ) from exc
+    except (httpx.HTTPError, ValueError) as exc:
+        raise AssistantUnavailableError(
+            "Could not obtain a CloudIDP access token. Check the corporate network connection."
+        ) from exc
+    if not token:
+        raise AssistantUnavailableError("CloudIDP returned no access token.")
+    return token
 
 
 def build_assistant_context(
@@ -62,7 +106,7 @@ def build_assistant_context(
     }
 
 
-def _instructions() -> str:
+def _instructions(context: Mapping[str, Any]) -> str:
     return """You are LinePulse AI's conversational maintenance-support assistant.
 Answer questions about the supplied Class A portfolio and selected asset in clear,
 plain language. Explain sensor evidence, trends, alerts, planning horizons, risk,
@@ -71,20 +115,19 @@ synthetic demo data. Never claim a confirmed failure, an OEM safety limit, a tru
 remaining-useful-life estimate, or a live equipment connection. Do not invent
 measurements or evidence that is not in the supplied context. Do not advise an
 autonomous shutdown or equipment control action. Make it clear that a qualified
-maintenance professional must make the final decision."""
+maintenance professional must make the final decision.
+
+Dashboard context (use only this as factual project evidence):
+""" + json.dumps(context, default=str, ensure_ascii=False)
 
 
 def answer_question(
     messages: Sequence[Mapping[str, str]],
     context: Mapping[str, Any],
 ) -> str:
-    """Send a standard OpenAI Responses API request using OPENAI_API_KEY."""
+    """Send a VW LLM chat-completions request using the documented gateway flow."""
 
     _load_environment()
-    if not os.getenv("OPENAI_API_KEY", "").strip():
-        raise AssistantUnavailableError(
-            "Add OPENAI_API_KEY to .env, then restart the dashboard."
-        )
     try:
         from openai import OpenAI
     except ImportError as exc:
@@ -92,43 +135,36 @@ def answer_question(
             "The OpenAI package is not installed. Run the project dependency install."
         ) from exc
 
-    history = []
+    history: list[dict[str, str]] = []
     for message in list(messages)[-MAX_HISTORY_MESSAGES:]:
-        role = (
-            "Assistant"
-            if str(message.get("role", "")).lower() == "assistant"
-            else "User"
-        )
+        role = "assistant" if str(message.get("role", "")).lower() == "assistant" else "user"
         content = str(message.get("content", "")).strip()[:MAX_MESSAGE_CHARS]
         if content:
-            history.append(f"{role}: {content}")
+            history.append({"role": role, "content": content})
     if not history:
         raise ValueError("Ask a question before requesting an assistant response.")
 
-    prompt = (
-        "Dashboard context (use only this as factual project evidence):\n"
-        + json.dumps(context, default=str, ensure_ascii=False)
-        + "\n\nConversation:\n"
-        + "\n".join(history)
-    )
     try:
-        api_key = os.getenv("OPENAI_API_KEY", "").strip()
         client = OpenAI(
-            base_url="https://llmapi.ai.vwgroup.com",
-            api_key=api_key,
+            api_key=get_token(),
+            base_url=LLM_BASE_URL,
+            default_headers={
+                "X-LLM-API-CLIENT-ID": f"Bearer {_credential('VW_LLM_API_KEY')}"
+            },
         )
-        response = client.responses.create(
+        response = client.chat.completions.create(
             model=os.getenv("OPENAI_MODEL", DEFAULT_MODEL).strip() or DEFAULT_MODEL,
-            instructions=_instructions(),
-            input=prompt,
-            max_output_tokens=500,
+            messages=[{"role": "system", "content": _instructions(context)}, *history],
+            temperature=0.0,
         )
+        answer = str(response.choices[0].message.content or "").strip()
+    except AssistantUnavailableError:
+        raise
     except Exception as exc:
         raise AssistantUnavailableError(
-            "The OpenAI request failed. Check the API key, model name, and network connection."
+            "The VW LLM request failed. Check the credentials, model name, and network connection."
         ) from exc
 
-    answer = str(getattr(response, "output_text", "")).strip()
     if not answer:
-        raise AssistantUnavailableError("The OpenAI model returned no text response.")
+        raise AssistantUnavailableError("The VW LLM model returned no text response.")
     return answer

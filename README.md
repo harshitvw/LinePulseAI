@@ -70,14 +70,18 @@ If port 8501 is already used, run the frontend with `--server.port 8502` and ope
 
 ## OpenAI conversational assistant
 
-The optional **Ask AI** workspace answers questions about the selected Class A asset, its visible evidence, alerts, planning horizon, recommendation, and the human decision workflow. It uses the standard OpenAI Responses API. Add your OpenAI API key to a local `.env` file (never commit it):
+The optional **Ask AI** workspace answers questions about the selected Class A asset, its visible evidence, alerts, planning horizon, recommendation, and the human decision workflow. It uses the VW LLM gateway's Chat Completions API. Add the credentials to a local `.env` file (never commit it):
 
 ```dotenv
-OPENAI_API_KEY=your_openai_api_key
-OPENAI_MODEL=gpt-5-mini
+VW_LLM_CLIENT_ID=your_cloudidp_client_id
+VW_LLM_CLIENT_SECRET=your_cloudidp_client_secret
+VW_LLM_API_KEY=your_vw_virtual_key
+OPENAI_MODEL=gpt-4o
 ```
 
-Restart the dashboard, then open **Ask AI**. The app constructs a normal `OpenAI()` client and calls `client.responses.create(...)`; it receives only the dashboard's portfolio summary and selected-asset evidence. It does not control equipment, access local files, or replace a qualified maintenance decision. The implementation uses the OpenAI Responses API. [OpenAI's Responses API documentation](https://developers.openai.com/api/reference/resources/responses) and [GPT-5 Mini model documentation](https://developers.openai.com/api/docs/models/gpt-5-mini) describe the API and default model.
+Restart the dashboard, then open **Ask AI**. For each request, the app obtains a short-lived CloudIDP token, then creates `OpenAI(api_key=token, base_url="https://llmapi.ai.vwgroup.com", default_headers={"X-LLM-API-CLIENT-ID": "Bearer ..."})` and calls `chat.completions.create(...)`. It receives only the dashboard's portfolio summary and selected-asset evidence. It does not control equipment, access local files, or replace a qualified maintenance decision.
+
+See [docs/ASK_AI.md](docs/ASK_AI.md) for setup, feature behavior, safety boundaries, verification, and troubleshooting.
 
 ## Live data simulator
 
