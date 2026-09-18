@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import hmac
 import inspect
 import json
 import logging
@@ -36,6 +37,59 @@ STATUS_LABELS = {
 LOGGER = logging.getLogger("linepulse.dashboard")
 
 
+def _auth_users() -> dict[str, dict[str, str]]:
+    return {
+        os.getenv("LINEPULSE_HARSHIT_ID", "Harshit").strip(): {
+            "role": "Maintainer",
+            "password": os.getenv("LINEPULSE_HARSHIT_PASSWORD", "harshit123"),
+        },
+        os.getenv("LINEPULSE_RAHUL_ID", "Rahul").strip(): {
+            "role": "Maintainer",
+            "password": os.getenv("LINEPULSE_RAHUL_PASSWORD", "rahul123"),
+        },
+        os.getenv("LINEPULSE_DEEPAK_ID", "Deepak").strip(): {
+            "role": "Operator",
+            "password": os.getenv("LINEPULSE_DEEPAK_PASSWORD", "deepak123"),
+        },
+        os.getenv("LINEPULSE_NIKHIL_ID", "Nikhil").strip(): {
+            "role": "Operator",
+            "password": os.getenv("LINEPULSE_NIKHIL_PASSWORD", "nikhil123"),
+        },
+    }
+
+
+def _authenticate(login_id: str, password: str) -> dict[str, str] | None:
+    user = _auth_users().get(login_id.strip())
+    if not user or not hmac.compare_digest(password, user["password"]):
+        return None
+    return {"login_id": login_id.strip(), "role": user["role"]}
+
+
+def _render_login() -> None:
+    st.markdown(
+        """<style>
+        .st-key-login_page { width:100% !important; max-width:none !important; margin:0 !important; }
+        </style>""",
+        unsafe_allow_html=True,
+    )
+    with st.container(key="login_page"):
+        st.markdown(
+            """<div class="lp-login-shell"><div class="lp-kicker">Human-controlled access</div>
+            <h1>Sign in to LinePulse AI</h1>
+            <p>Use your role account to review evidence and record an accountable decision.</p></div>""",
+            unsafe_allow_html=True,
+        )
+        with st.form("login_form"):
+            login_id = st.text_input("Login ID", placeholder="Enter ID")
+            password = st.text_input("Password", type="password")
+            submitted = st.form_submit_button("Sign in", type="primary", use_container_width=True)
+            if submitted:
+                user = _authenticate(login_id, password)
+                if user:
+                    st.session_state.authenticated_user = user
+                    st.rerun()
+                st.error("That login ID or password was not recognized.")
+
 st.set_page_config(
     page_title="LinePulse AI | Class A Asset Intelligence",
     page_icon="◈",
@@ -43,50 +97,17 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.html(
-    """
-    <script>
-    (() => {
-      const doc = window.parent.document;
-      const key = "linepulseSidebarHidden";
-      let button = doc.getElementById("linepulse-sidebar-toggle");
-      if (!button) {
-        button = doc.createElement("button");
-        button.id = "linepulse-sidebar-toggle";
-        button.type = "button";
-        button.textContent = "☰";
-        button.setAttribute("aria-label", "Toggle navigation");
-        button.style.cssText = [
-          "position:fixed", "top:2.5rem", "left:.75rem", "transform:translateY(-50%)",
-          "z-index:2100", "width:2rem", "height:2rem", "display:grid", "place-items:center",
-          "border-radius:.5rem", "border:2px solid #DCE8FA", "cursor:pointer",
-          "background:var(--lp-blue,#0F52BA)", "color:#FFFFFF", "font:800 1rem/1 Segoe UI,Arial,sans-serif",
-          "box-shadow:0 5px 14px rgba(10,22,42,.25)"
-        ].join(";");
-        doc.body.appendChild(button);
-      }
-      const apply = (hidden) => {
-        doc.body.classList.toggle("lp-sidebar-hidden", hidden);
-        button.setAttribute("aria-expanded", String(!hidden));
-        button.title = hidden ? "Show navigation" : "Hide navigation";
-        window.localStorage.setItem(key, String(hidden));
-      };
-      apply(window.localStorage.getItem(key) === "true");
-      button.onclick = () => apply(!doc.body.classList.contains("lp-sidebar-hidden"));
-    })();
-    </script>
-    """,
-    unsafe_allow_javascript=True,
-)
-
 # Initialise UI state before calculating theme-dependent values.
 st.session_state.setdefault("dark_mode", False)
+st.session_state.setdefault("theme_mode", "Dark" if st.session_state.dark_mode else "Light")
+st.session_state.theme_mode = "Dark" if st.session_state.theme_mode == "Dark" else "Light"
+st.session_state.dark_mode = st.session_state.theme_mode == "Dark"
+st.session_state.setdefault("authenticated_user", None)
 st.session_state.setdefault("workspace", "Home")
 st.session_state.setdefault("selected_asset", None)
 st.session_state.setdefault("asset_review_view", "Assessment")
 
 DARK_MODE = bool(st.session_state.dark_mode)
-
 INK = "#F8FAFC" if DARK_MODE else "#0F172A"
 TEXT_SECONDARY = "#CBD5E1" if DARK_MODE else "#475569"
 MUTED = "#94A3B8" if DARK_MODE else "#64748B"
@@ -183,7 +204,7 @@ st.markdown(
       --lp-nav-border:#454952;
       --lp-nav-text:#F8F8FF;
       --lp-nav-muted:#C9CED8;
-      --lp-header-height:5rem;
+    --lp-header-height:4.5rem;
     }
 
     html, body, [class*="css"] {
@@ -200,10 +221,10 @@ st.markdown(
     [data-testid="stDecoration"] { display:none !important; }
     [data-testid="stAppViewContainer"] > .main { padding-top:0 !important; }
     [data-testid="stSidebar"] {
-      display:block; width:16rem !important; min-width:16rem !important;
+    display:block; width:11.5rem !important; min-width:11.5rem !important;
       background:#0d211b; border-right:1px solid #173b30;
     }
-    [data-testid="stSidebar"] > div:first-child { width:16rem !important; }
+    [data-testid="stSidebar"] > div:first-child { width:11.5rem !important; }
     [data-testid="stSidebar"] [data-testid="stSidebarContent"] { padding:0 !important; }
     [data-testid="stSidebarUserContent"] { padding-top:0 !important; }
     [data-testid="stSidebarContent"] > div:first-child { padding-top:0 !important; }
@@ -232,9 +253,25 @@ st.markdown(
     [data-testid="stSidebar"] div[role="radiogroup"] [data-testid="stMarkdownContainer"] { color:inherit !important; -webkit-text-fill-color:currentColor !important; font-weight:720; font-size:.8rem; }
     [data-testid="stSidebar"] div[role="radiogroup"] label input { opacity:0 !important; width:0 !important; margin:0 !important; }
     [data-testid="stSidebar"] div[role="radiogroup"] label > div:first-child { display:none; }
-    [data-testid="stSidebar"] [data-testid="stToggle"] { margin:.1rem .42rem; }
-    [data-testid="stSidebar"] [data-testid="stToggle"] label,
-    [data-testid="stSidebar"] [data-testid="stToggle"] label p { color:#e7f0eb !important; -webkit-text-fill-color:#e7f0eb !important; }
+        .st-key-sidebar_appearance {
+            position:fixed !important; left:.65rem !important; bottom:.7rem !important; z-index:1750 !important;
+            width:10.2rem !important; box-sizing:border-box !important; margin:0 !important;
+            padding:.8rem .35rem .85rem !important; border:1px solid rgba(148,163,184,.28) !important;
+            border-radius:.9rem !important; background:linear-gradient(145deg,#182b3a,#10231e) !important;
+            box-shadow:0 12px 28px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.07) !important;
+        }
+        .st-key-sidebar_appearance .lp-side-label { margin:0 0 .55rem !important; color:#f1f5f9 !important; font-size:.66rem !important; letter-spacing:.08em !important; }
+        .st-key-sidebar_appearance .stButton { width:100% !important; margin:0 !important; }
+        .st-key-sidebar_appearance .stButton button {
+            width:100% !important; min-height:2.55rem !important; padding:.45rem .65rem !important;
+            display:flex !important; align-items:center !important; justify-content:center !important; gap:.45rem !important;
+            border:1px solid #e5bd54 !important; border-radius:.7rem !important; background:linear-gradient(135deg,#fff1bd,#f3c969) !important;
+            color:#493b13 !important; font-size:.68rem !important; font-weight:850 !important;
+            box-shadow:0 3px 9px rgba(15,23,42,.22), inset 0 1px 0 rgba(255,255,255,.7) !important;
+            transition:transform .2s ease, box-shadow .2s ease, background .2s ease !important;
+        }
+        .st-key-sidebar_appearance .stButton button:hover { transform:translateY(-1px) !important; box-shadow:0 6px 14px rgba(15,23,42,.28) !important; }
+        .st-key-sidebar_appearance .stButton button p { color:inherit !important; font-size:inherit !important; font-weight:inherit !important; }
     .lp-side-status {
       margin:1rem .35rem 0; padding:.72rem .75rem; border:1px solid #285144;
       border-radius:.65rem; background:#102b23;
@@ -263,6 +300,22 @@ st.markdown(
     .lp-appbar-meta { display:flex; align-items:center; justify-content:flex-end; gap:.65rem; }
     .lp-appbar-snapshot { color:var(--lp-muted); font-size:.66rem; text-align:right; }
     .lp-appbar-snapshot strong { display:block; color:var(--lp-ink); font-size:.74rem; margin-top:.12rem; }
+    .st-key-header_controls {
+      position:fixed !important; top:.78rem !important; right:1rem !important; z-index:1901 !important;
+      height:2.9rem !important; display:flex !important; align-items:center !important;
+      margin:0 !important; padding:.25rem .3rem .25rem .75rem !important; width:17rem !important;
+      box-sizing:border-box !important; border:1px solid rgba(255,255,255,.18) !important;
+      border-radius:.75rem !important; background:rgba(16,28,43,.58) !important;
+      backdrop-filter:blur(10px) !important;
+    }
+    .st-key-header_controls [data-testid="stHorizontalBlock"] { align-items:center !important; gap:.45rem !important; }
+    .st-key-header_controls [data-testid="stCaptionContainer"] { margin:0 !important; white-space:nowrap; overflow:visible !important; }
+    .st-key-header_controls [data-testid="stCaptionContainer"] p { color:#F8FAFC !important; font-size:.72rem !important; font-weight:700 !important; }
+    .st-key-header_controls .stButton { margin-left:auto !important; }
+    .st-key-header_controls .stButton button { min-height:2.2rem !important; padding:.25rem .65rem !important; border:1px solid #8AB4F8 !important; background:#0F52BA !important; color:#FFFFFF !important; font-size:.7rem !important; }
+        .lp-login-shell { max-width:34rem; margin:8vh auto 1.2rem; padding:2.2rem 2.4rem; border:1px solid var(--lp-border); border-radius:1rem; background:var(--lp-panel); box-shadow:var(--lp-shadow-md); }
+        .lp-login-shell h1 { margin:.4rem 0 .5rem; color:var(--lp-ink); }
+        .lp-login-shell p { margin:0; color:var(--lp-muted); line-height:1.5; }
     .lp-wordmark { display:flex; align-items:center; gap:.72rem; margin:0; }
     .lp-logo {
       width:2.35rem; height:2.35rem; display:grid; place-items:center;
@@ -333,7 +386,7 @@ st.markdown(
       position:absolute; top:.72rem; right:2.55rem; z-index:19;
       display:grid; place-items:center; width:1.35rem; height:1.35rem;
       border-radius:50%; color:#ffffff; background:#d92d20; border:1px solid #f97066;
-      font-size:.86rem; font-weight:900; line-height:1;
+            font-size:.82rem; font-weight:900; line-height:1;
       box-shadow:0 0 0 3px rgba(217,45,32,.16);
     }
 
@@ -375,6 +428,34 @@ st.markdown(
     .lp-panel-label { color:#00677f; font-size:.69rem; font-weight:760; letter-spacing:.1em; text-transform:uppercase; }
     .lp-panel-value { color:var(--lp-ink); font-weight:780; margin-top:.3rem; }
     .lp-panel-copy { color:var(--lp-muted); font-size:.79rem; line-height:1.45; margin-top:.35rem; }
+        .lp-ai-notice {
+            display:flex; align-items:flex-start; gap:.7rem; margin:.1rem 0 .8rem; padding:.75rem .9rem;
+            border:1px solid var(--lp-border); border-left:4px solid var(--lp-blue); border-radius:.72rem;
+            background:var(--lp-panel-2); color:var(--lp-text-2); font-size:.76rem; line-height:1.45;
+        }
+        .lp-ai-notice strong { display:block; color:var(--lp-ink); font-size:.72rem; margin-bottom:.12rem; }
+        .lp-ai-notice.warning { border-left-color:var(--lp-amber); }
+        .lp-ai-chat-title { color:var(--lp-ink); font-size:.92rem; font-weight:800; margin:0; }
+        .lp-ai-chat-copy { color:var(--lp-muted); font-size:.72rem; margin:.18rem 0 0; }
+        .st-key-ask_chat_surface {
+            margin:.85rem 0 .7rem !important; padding:.85rem 1rem 1rem !important;
+            border:1px solid var(--lp-border) !important; border-radius:.9rem !important;
+            background:var(--lp-panel) !important; box-shadow:var(--lp-shadow-xs) !important;
+        }
+        .st-key-ask_chat_surface [data-testid="stChatMessage"] {
+            margin:.55rem 0 !important; padding:.7rem .8rem !important;
+            border:1px solid var(--lp-border) !important; border-radius:.7rem !important;
+            background:var(--lp-panel-2) !important;
+        }
+        .st-key-ask_chat_surface [data-testid="stChatMessage"] p { color:var(--lp-text-2) !important; font-size:.8rem; line-height:1.5; }
+        .st-key-ask_chat_surface [data-testid="stChatMessage"] [data-testid="stChatMessageAvatarUser"] { background:#0F52BA !important; }
+        .st-key-ask_chat_surface [data-testid="stChatMessage"] [data-testid="stChatMessageAvatarAssistant"] { background:#0f766e !important; }
+        .lp-ai-empty { display:flex; align-items:center; gap:.7rem; margin:.8rem 0 .2rem; padding:1rem; border:1px dashed var(--lp-border); border-radius:.7rem; color:var(--lp-muted); background:var(--lp-panel-2); font-size:.78rem; }
+        .lp-ai-empty strong { color:var(--lp-ink); display:block; margin-bottom:.18rem; }
+        .lp-ai-model { display:inline-flex; align-items:center; gap:.35rem; margin:.25rem 0 .35rem; color:var(--lp-muted); font-size:.7rem; }
+        .lp-ai-model::before { content:""; width:.42rem; height:.42rem; border-radius:50%; background:#12b76a; }
+        [data-testid="stChatInput"] { margin-top:.55rem !important; }
+        [data-testid="stChatInput"] textarea { min-height:3rem !important; border-radius:.7rem !important; }
 
     .lp-status-pill {
       display:inline-flex; align-items:center; gap:.38rem; color:white; padding:.3rem .57rem;
@@ -514,8 +595,8 @@ st.markdown(
 
     @media (max-width: 760px) {
       .block-container { padding:.75rem .75rem 1.5rem !important; }
-      [data-testid="stSidebar"] { width:12rem !important; min-width:12rem !important; }
-      [data-testid="stSidebar"] > div:first-child { width:12rem !important; }
+    [data-testid="stSidebar"] { width:11rem !important; min-width:11rem !important; }
+    [data-testid="stSidebar"] > div:first-child { width:11rem !important; }
       .lp-topbar { align-items:flex-start; }
       .lp-topmeta { align-items:flex-end; flex-direction:column; }
       .lp-snapshot { display:none; }
@@ -565,6 +646,12 @@ if DARK_MODE:
         [data-testid="stSidebar"] { background:var(--lp-nav-bg); border-right-color:var(--lp-nav-border); }
         [data-testid="stSidebar"] div[role="radiogroup"] label { color:#F7FAFF !important; }
         [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) { background:#0F52BA; color:#FFFFFF !important; }
+                .st-key-sidebar_appearance .stButton button {
+                    background:linear-gradient(135deg,#193b61,#245b91) !important;
+                    border-color:#6aa9df !important; color:#F4F9FF !important;
+                    box-shadow:0 3px 10px rgba(3,18,36,.4), inset 0 1px 0 rgba(255,255,255,.12) !important;
+                }
+                .st-key-sidebar_appearance .stButton button p { color:#F4F9FF !important; }
         .lp-readonly { color:#a6f4c5; background:#123526; border-color:#087443; }
         .lp-audit-pill.approve, .lp-audit-pill.resolved { color:#d1fadf; background:#064e3b; }
         .lp-audit-pill.modify, .lp-audit-pill.partial, .lp-audit-pill.pending { color:#fef0c7; background:#713b12; }
@@ -587,12 +674,12 @@ st.markdown(
     [data-testid="stHeader"] { display:block !important; position:fixed !important; inset:0 0 auto 0 !important; height:2.75rem !important; background:transparent !important; z-index:1900 !important; pointer-events:none !important; }
     [data-testid="stToolbar"], [data-testid="stDecoration"] { display:none !important; }
 
-    [data-testid="stSidebar"] { display:block; width:12.5rem !important; min-width:12.5rem !important; top:var(--lp-header-height) !important; height:calc(100vh - var(--lp-header-height)) !important; background:var(--lp-nav-bg) !important; border-right:1px solid var(--lp-nav-border) !important; }
+    [data-testid="stSidebar"] { display:block; width:11.5rem !important; min-width:11.5rem !important; top:var(--lp-header-height) !important; height:calc(100vh - var(--lp-header-height)) !important; background:var(--lp-nav-bg) !important; border-right:1px solid var(--lp-nav-border) !important; }
     body:not(.lp-sidebar-hidden) [data-testid="stSidebar"] { display:block !important; visibility:visible !important; opacity:1 !important; transform:none !important; }
-    body:not(.lp-sidebar-hidden) [data-testid="stMain"] { left:12.5rem !important; width:calc(100vw - 14.5rem) !important; }
+    body:not(.lp-sidebar-hidden) [data-testid="stMain"] { left:11.5rem !important; width:calc(100vw - 13.5rem) !important; }
     body.lp-sidebar-hidden [data-testid="stSidebar"] { display:none !important; }
     body.lp-sidebar-hidden [data-testid="stMain"] { left:0 !important; width:100vw !important; max-width:100vw !important; }
-    [data-testid="stSidebar"] > div:first-child { width:12.5rem !important; }
+    [data-testid="stSidebar"] > div:first-child { width:11.5rem !important; }
     [data-testid="stSidebarHeader"] { display:none !important; height:0 !important; min-height:0 !important; padding:0 !important; margin:0 !important; }
     [data-testid="stSidebarContent"], [data-testid="stSidebarUserContent"] { padding-top:0 !important; }
     [data-testid="stSidebar"] .block-container { padding:0 .8rem 1rem !important; }
@@ -683,22 +770,6 @@ st.markdown(
     }
     [data-testid="stSidebarUserContent"], [data-testid="stSidebarUserContent"] > div { height:100% !important; }
     [data-testid="stSidebarUserContent"] { padding-bottom:7rem !important; }
-    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"]:has(.st-key-appearance_panel) {
-      min-height:calc(100vh - var(--lp-header-height) - 1rem) !important;
-      display:flex !important; flex-direction:column !important;
-    }
-    .st-key-appearance_panel {
-      position:fixed !important; left:.75rem !important; bottom:.75rem !important; z-index:1750 !important;
-      width:11rem !important; box-sizing:border-box !important;
-      margin:0 !important; padding:.8rem .75rem !important;
-      border:1px solid #596579 !important; border-radius:.7rem !important;
-      background:#20242B !important; box-shadow:0 8px 20px rgba(0,0,0,.18) !important;
-    }
-    [data-testid="stSidebarUserContent"] [data-testid="stElementContainer"]:has(.st-key-appearance_panel),
-    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlockBorderWrapper"]:has(.st-key-appearance_panel) {
-      margin-top:auto !important;
-    }
-    .st-key-appearance_panel .lp-side-label { margin:0 0 .55rem !important; color:#DCE9FA !important; }
     [data-testid="stSidebar"] [data-testid="stCheckbox"] label,
     [data-testid="stSidebar"] [data-testid="stCheckbox"] label *,
     [data-testid="stSidebar"] [data-testid="stCheckbox"] [data-testid="stWidgetLabel"],
@@ -729,7 +800,6 @@ st.markdown(
       background:#0F52BA !important; border-color:#4D8FE8 !important;
       color:#FFFFFF !important; -webkit-text-fill-color:#FFFFFF !important;
     }
-    @media (max-width:760px) { .st-key-appearance_panel { width:12.9rem !important; } }
     [data-baseweb="popover"] [role="option"], [data-baseweb="popover"] [role="option"] * {
       color:#F8F8FF !important; -webkit-text-fill-color:#F8F8FF !important; opacity:1 !important;
     }
@@ -739,11 +809,157 @@ st.markdown(
     .lp-memory-label { color:var(--lp-muted); font-size:.66rem; font-weight:760; letter-spacing:.055em; text-transform:uppercase; }
     .lp-memory-value { color:var(--lp-ink); font-size:.95rem; font-weight:780; line-height:1.35; margin-top:.32rem; overflow-wrap:anywhere; }
 
-    @media (max-width:600px) { .block-container { padding:calc(var(--lp-header-height) + .06rem) .75rem 1.5rem !important; } [data-testid="stMain"] { left:0 !important; width:100vw !important; } .lp-appbar { padding:.7rem .75rem .7rem 4.15rem; } .lp-appbar-title h1 { font-size:1.08rem; } .lp-appbar-title p, .lp-appbar-meta, .lp-appbar-snapshot { display:none !important; } .lp-memory-grid { grid-template-columns:1fr; } }
+        @media (max-width:760px) {
+            [data-testid="stSidebar"], [data-testid="stSidebar"] > div:first-child { width:10rem !important; min-width:10rem !important; }
+            body:not(.lp-sidebar-hidden) [data-testid="stMain"] { left:10rem !important; width:calc(100vw - 10rem) !important; max-width:calc(100vw - 10rem) !important; }
+            .st-key-header_controls { top:.55rem !important; right:.5rem !important; width:13rem !important; height:2.65rem !important; padding:.2rem .25rem .2rem .55rem !important; }
+            .st-key-header_controls [data-testid="stCaptionContainer"] { max-width:6.2rem !important; overflow:hidden !important; }
+            .st-key-header_controls [data-testid="stCaptionContainer"] p { overflow:hidden !important; text-overflow:ellipsis !important; font-size:.62rem !important; }
+            .st-key-header_controls .stButton button { min-height:2rem !important; padding:.2rem .5rem !important; font-size:.66rem !important; }
+            .st-key-ask_chat_surface, .st-key-ask_chat_surface [data-testid="stChatMessage"], [data-testid="stChatInput"] { max-width:100% !important; min-width:0 !important; box-sizing:border-box !important; }
+        }
+        @media (max-width:600px) { .block-container { padding:calc(var(--lp-header-height) + .06rem) .75rem 1.5rem !important; } [data-testid="stMain"] { left:0 !important; width:100vw !important; } .lp-appbar { padding:.7rem .75rem .7rem 4.15rem; } .lp-appbar-title h1 { font-size:1.08rem; } .lp-appbar-title p, .lp-appbar-meta, .lp-appbar-snapshot { display:none !important; } .st-key-header_controls { right:.65rem !important; width:15.5rem !important; } .st-key-sidebar_appearance { left:.55rem !important; width:9.8rem !important; } .st-key-sidebar_appearance [data-testid="stCheckbox"] label:has(input:checked)::before { transform:translateX(6.15rem); } .lp-memory-grid { grid-template-columns:1fr; } }
     @media (prefers-reduced-motion:reduce) { .lp-urgent, .lp-urgent-badge, .lp-urgent-badge::before { animation:none !important; } }
     </style>
     """,
     unsafe_allow_html=True,
+)
+
+if DARK_MODE:
+        st.markdown(
+                """
+                <style>
+                .stApp div[data-testid="stTextInput"] input,
+                .stApp div[data-testid="stTextArea"] textarea,
+                .stApp div[data-testid="stNumberInput"] input,
+                .stApp div[data-baseweb="input"] input,
+                .stApp div[data-baseweb="select"] > div,
+                .stApp div[data-baseweb="select"] input,
+                                [data-testid="stChatInput"],
+                                [data-testid="stChatInput"] > div,
+                                [data-testid="stChatInput"] form,
+                                [data-testid="stChatInput"] [data-baseweb="textarea"],
+                                [data-testid="stChatInput"] textarea {
+                    background:#34373D !important; color:#F8F8FF !important;
+                    -webkit-text-fill-color:#F8F8FF !important; border-color:#59606B !important;
+                    caret-color:#8AB4F8 !important;
+                }
+                .stApp div[data-testid="stTextInput"] input::placeholder,
+                .stApp div[data-testid="stTextArea"] textarea::placeholder,
+                [data-testid="stChatInput"] textarea::placeholder { color:#C9CED8 !important; -webkit-text-fill-color:#C9CED8 !important; }
+                [data-testid="stChatInput"] button { background:#0F52BA !important; color:#FFFFFF !important; border-color:#8AB4F8 !important; }
+                [data-testid="stChatInput"]:focus-within,
+                [data-testid="stChatInput"]:focus-within > div,
+                [data-testid="stChatInput"]:focus-within [data-baseweb="textarea"] { background:#34373D !important; border-color:#8AB4F8 !important; }
+                [data-testid="stChatMessage"] { background:#34373D !important; border-color:#59606B !important; }
+                [data-testid="stBottomBlockContainer"],
+                [data-testid="stBottomBlockContainer"] > div,
+                [data-testid="stChatInputContainer"],
+                [data-testid="stChatInputContainer"] > div {
+                    background:#2A2C31 !important; box-shadow:none !important; border-color:#59606B !important;
+                }
+                [data-testid="stSelectbox"] [data-baseweb="select"] > div,
+                [data-testid="stSelectbox"] [data-baseweb="select"] > div > div,
+                [data-baseweb="popover"], [data-baseweb="popover"] > div,
+                [role="listbox"], [role="option"] {
+                    background:#172334 !important; color:#F8F8FF !important;
+                    -webkit-text-fill-color:#F8F8FF !important; border-color:#596579 !important;
+                }
+                [data-testid="stSelectbox"] [data-baseweb="select"] span,
+                [data-testid="stSelectbox"] [role="option"] *,
+                [data-baseweb="popover"] *, [role="listbox"] *, [role="option"] * {
+                    color:#F8F8FF !important; -webkit-text-fill-color:#F8F8FF !important;
+                }
+                [role="option"]:hover, [role="option"][aria-selected="true"] {
+                    background:#24507b !important; color:#FFFFFF !important;
+                }
+                .stApp div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+                .stApp div[data-testid="stSelectbox"] div[data-baseweb="select"] > div > div,
+                .stApp div[data-testid="stSelectbox"] div[data-baseweb="select"] > div * {
+                    background:#172334 !important; color:#F8F8FF !important;
+                    -webkit-text-fill-color:#F8F8FF !important; border-color:#8D97A5 !important;
+                }
+                .stApp div[data-testid="stSelectbox"] div[role="group"],
+                .stApp div[data-testid="stSelectbox"] div[role="group"] input[role="combobox"],
+                .stApp div[data-testid="stSelectbox"] div[role="group"] button {
+                    background:#172334 !important; background-color:#172334 !important;
+                    color:#F8F8FF !important; -webkit-text-fill-color:#F8F8FF !important;
+                    border-color:#8D97A5 !important;
+                }
+                .stApp [data-testid="stBottomBlockContainer"],
+                .stApp [data-testid="stBottomBlockContainer"] > div,
+                .stApp [data-testid="stChatInputContainer"],
+                .stApp [data-testid="stChatInputContainer"] > div {
+                    background:#2A2C31 !important; background-color:#2A2C31 !important;
+                    box-shadow:none !important; border-color:#59606B !important;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
+        )
+
+if st.session_state.authenticated_user is None:
+    st.markdown(
+        """<style>
+                html, body { width:100% !important; height:100% !important; margin:0 !important; overflow:hidden !important; }
+                [data-testid="stAppViewContainer"], [data-testid="stMain"], [data-testid="stAppViewContainer"] > .main {
+                    width:100% !important; max-width:none !important; height:100% !important; margin:0 !important; left:0 !important; overflow:hidden !important;
+                }
+        [data-testid="stSidebar"], [data-testid="stHeader"], [data-testid="stToolbar"],
+        [data-testid="stDecoration"], [data-testid="collapsedControl"] { display:none !important; }
+                [data-testid="stMainBlockContainer"], .block-container, [data-testid="stAppViewContainer"] > .main > div {
+                    width:100% !important; max-width:none !important; min-width:0 !important; height:100% !important;
+                    margin:0 !important; padding:0 !important; overflow:hidden !important;
+                }
+                .st-key-login_page {
+                    position:fixed !important; inset:0 !important; z-index:3000 !important;
+                    display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:center !important;
+                    width:100vw !important; height:100vh !important; max-width:none !important; min-height:0 !important;
+                    box-sizing:border-box !important; margin:0 !important; padding:2rem 1rem !important; overflow:auto !important;
+                    background:radial-gradient(circle at 15% 10%,#dbeafe 0,transparent 34%), linear-gradient(135deg,#f7f9fd,#e8eef7) !important;
+                }
+                .lp-login-shell { width:100% !important; max-width:34rem !important; margin:0 auto !important; padding:2rem 2.2rem 1.25rem !important; border:1px solid #d7e0ec !important; border-bottom:0 !important; border-radius:1.2rem 1.2rem 0 0 !important; background:#ffffff !important; box-shadow:0 18px 45px rgba(15,35,60,.13) !important; text-align:center !important; overflow-wrap:anywhere !important; }
+                .lp-login-shell .lp-kicker { color:#0F52BA !important; }
+                .lp-login-shell h1 { margin:.6rem 0 .7rem !important; font-size:clamp(1.65rem, 3vw, 2.25rem) !important; }
+                .lp-login-shell p { max-width:30rem; margin:0 auto !important; font-size:.9rem !important; line-height:1.45 !important; overflow-wrap:anywhere !important; }
+                .st-key-login_page [data-testid="stForm"] { width:100% !important; max-width:34rem !important; margin:0 auto !important; padding:1rem 2.2rem 1.65rem !important; box-sizing:border-box !important; border:1px solid #d7e0ec !important; border-top:0 !important; border-radius:0 0 1.2rem 1.2rem !important; background:#ffffff !important; box-shadow:0 18px 45px rgba(15,35,60,.13) !important; }
+                .st-key-login_page [data-testid="stForm"] input { background:#f8fafc !important; border-color:#cbd5e1 !important; color:#1f2937 !important; }
+                .st-key-login_page [data-testid="stForm"] button { min-height:2.7rem !important; border-radius:.65rem !important; }
+                @media (max-width:600px) { .st-key-login_page { justify-content:flex-start !important; padding:3rem .75rem !important; } .lp-login-shell { padding:1.6rem 1.2rem 1rem !important; } .st-key-login_form { padding:1rem 1.2rem 1.3rem !important; } }
+        </style>""",
+        unsafe_allow_html=True,
+    )
+    _render_login()
+    st.stop()
+
+st.html(
+        """
+        <script>
+        (() => {
+            const doc = window.parent.document;
+            const key = "linepulseSidebarHidden";
+            let button = doc.getElementById("linepulse-sidebar-toggle");
+            if (!button) {
+                button = doc.createElement("button");
+                button.id = "linepulse-sidebar-toggle";
+                button.type = "button";
+                button.textContent = "☰";
+                button.setAttribute("aria-label", "Toggle navigation");
+                button.style.cssText = "position:fixed;top:2.25rem;left:.75rem;transform:translateY(-50%);z-index:2100;width:2rem;height:2rem;display:grid;place-items:center;border-radius:.5rem;border:2px solid #DCE8FA;cursor:pointer;background:var(--lp-blue,#0F52BA);color:#FFFFFF;font:800 1rem/1 Segoe UI,Arial,sans-serif;box-shadow:0 5px 14px rgba(10,22,42,.25)";
+                doc.body.appendChild(button);
+            }
+            const apply = (hidden) => {
+                doc.body.classList.toggle("lp-sidebar-hidden", hidden);
+                button.setAttribute("aria-expanded", String(!hidden));
+                button.title = hidden ? "Show navigation" : "Hide navigation";
+                window.localStorage.setItem(key, String(hidden));
+            };
+            apply(window.localStorage.getItem(key) === "true");
+            button.onclick = () => apply(!doc.body.classList.contains("lp-sidebar-hidden"));
+        })();
+        </script>
+        """,
+        unsafe_allow_javascript=True,
 )
 
 
@@ -877,6 +1093,18 @@ def get_service(
         return LinePulseService()
 
 
+@st.cache_data(ttl=60, show_spinner=False)
+def _load_dashboard_data(
+    workbook_path: str,
+    workbook_size: int,
+    workbook_modified_ns: int,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    service = get_service(workbook_path, workbook_size, workbook_modified_ns)
+    overview = _to_dict(service.overview())
+    assets = [_normalize_asset(item) for item in _to_records(service.portfolio(), ("assets", "items"))]
+    return overview, assets
+
+
 def _normalize_asset(item: Mapping[str, Any]) -> dict[str, Any]:
     row = dict(item)
     return {
@@ -942,7 +1170,7 @@ def _summary_card(status: str, count: int) -> None:
           <span class="lp-help" tabindex="0" aria-label="Status explanation">?
             <span class="lp-tip">{_h(policy)}. Before maintenance, status comes from transparent condition and planning-horizon evidence; verified outcomes may update the workflow colour while preserving the original assessment. Business impact changes queue priority, not technical RAG.</span>
           </span>
-          <div class="lp-summary-icon{' blink' if status == 'RED' else ''}" aria-hidden="true">{_h({'RED': '!', 'AMBER': '◒', 'GREEN': '✓'}[status])}</div>
+          <div class="lp-summary-icon{' blink' if status == 'RED' else ''}" aria-hidden="true">{_h({'RED': '⚠', 'AMBER': '◒', 'GREEN': '✓'}[status])}</div>
           <div class="lp-summary-label">{_h(status)} · {_h(STATUS_LABELS[status])}</div>
           <div class="lp-summary-value">{int(count)}</div>
           <div class="lp-summary-copy">Class A assets</div>
@@ -1032,7 +1260,7 @@ def _asset_card(asset: Mapping[str, Any], rank: int) -> None:
     if asset["model_status"] != status:
         model_note = f" · Model: {asset['model_status']}"
     ambiguity = " · HUMAN REVIEW" if asset.get("is_ambiguous") else ""
-    warning_mark = '<span class="lp-warning-mark blink" aria-label="Critical warning">!</span>' if status == "RED" else ""
+    warning_mark = '<span class="lp-warning-mark blink" aria-label="Critical warning">⚠</span>' if status == "RED" else ""
     st.markdown(
         f"""
         <div class="lp-asset-card {status.lower()}">
@@ -1285,8 +1513,16 @@ def _render_asset_evidence(
             st.caption("Only technician-verified outcomes update recommendation memory.")
 
 
-def _render_owner_decision(service: LinePulseService, selected_id: str, action: Any) -> None:
+def _render_owner_decision(
+    service: LinePulseService,
+    selected_id: str,
+    action: Any,
+    user: Mapping[str, str],
+) -> None:
     _section("Owner decision", "AI recommends. The Equipment Owner decides and remains accountable.")
+    if user["role"] != "Maintainer":
+        st.info("Operator workflow: review evidence here, then hand the recommendation to a Maintainer for approval, modification, or rejection.")
+        return
     st.markdown(
         "<div class='lp-panel'><div class='lp-panel-label'>Safety gate</div>"
         "<div class='lp-panel-value'>No automatic equipment action</div>"
@@ -1297,7 +1533,8 @@ def _render_owner_decision(service: LinePulseService, selected_id: str, action: 
         d1, d2 = st.columns([.75, 1.25])
         with d1:
             decision = st.radio("Decision", ["APPROVE", "MODIFY", "REJECT"], horizontal=True)
-            owner = st.text_input("Decision owner", value="Equipment Owner")
+            owner = f"{user['login_id']} ({user['role']})"
+            st.text_input("Decision owner", value=owner, disabled=True)
         with d2:
             modified_action = st.text_area(
                 "Approved or modified action", value=str(action),
@@ -1328,15 +1565,12 @@ def _render_owner_decision(service: LinePulseService, selected_id: str, action: 
 try:
     source_workbook = _source_workbook()
     source_stat = source_workbook.stat()
-    service = get_service(
+    overview, assets = _load_dashboard_data(
         str(source_workbook),
         source_stat.st_size,
         source_stat.st_mtime_ns,
     )
-    overview_raw = _call(service.overview)
-    overview = _to_dict(overview_raw)
-    portfolio_raw = _call(service.portfolio)
-    assets = [_normalize_asset(item) for item in _to_records(portfolio_raw, ("assets", "items"))]
+    service = get_service(str(source_workbook), source_stat.st_size, source_stat.st_mtime_ns)
     if not assets:
         raise RuntimeError("The service returned no Class A assets.")
 except Exception as exc:
@@ -1392,10 +1626,15 @@ with st.sidebar:
         format_func=lambda value: value,
         label_visibility="collapsed",
     )
-    with st.container(key="appearance_panel"):
-        st.markdown("<div class='lp-side-label lp-appearance-label'>Appearance</div>", unsafe_allow_html=True)
-        st.toggle("Dark mode" if st.session_state.dark_mode else "Light mode", key="dark_mode")
-
+    with st.container(key="sidebar_appearance"):
+        st.markdown("<div class='lp-side-label'>Appearance</div>", unsafe_allow_html=True)
+        if st.button(
+            ("☾  Dark mode" if st.session_state.dark_mode else "☀  Light mode"),
+            key="theme_switch",
+            use_container_width=True,
+        ):
+            st.session_state.theme_mode = "Light" if st.session_state.theme_mode == "Dark" else "Dark"
+            st.rerun()
 _scroll_to_top_on_change("workspace", workspace)
 
 st.markdown(
@@ -1405,14 +1644,20 @@ st.markdown(
         <div class="lp-appbar-logo">LP</div>
         <div class="lp-appbar-title"><h1>LinePulse AI</h1></div>
       </div>
-      <div class="lp-appbar-meta">
-        <div class="lp-appbar-snapshot">Official data snapshot<strong>Week {_h(latest_source_week)} · {len(assets)} assets</strong></div>
-        <div class="lp-readonly">● Human-controlled</div>
-      </div>
     </div>
     """,
     unsafe_allow_html=True,
 )
+
+active_user = st.session_state.authenticated_user
+with st.container(key="header_controls"):
+    user_col, logout_col = st.columns([1.55, .85])
+    with user_col:
+        st.caption(f"{active_user['login_id']} · {active_user['role']}")
+    with logout_col:
+        if st.button("Log out", key="header_logout", use_container_width=True):
+            st.session_state.authenticated_user = None
+            st.rerun()
 
 if workspace == "Home":
     red_count = sum(asset["status"] == "RED" for asset in assets)
@@ -1440,7 +1685,7 @@ if workspace == "Home":
     with h1:
         _metric_card("Assets monitored", len(assets), "Class A equipment", "LP")
     with h2:
-        _metric_card("Needs attention", red_count, "Red priority assets", "!", alert=True)
+        _metric_card("Needs attention", red_count, "Red priority assets", "⚠", alert=True)
     with h3:
         _metric_card("Awaiting verification", pending_count, "Technician outcomes", "OK")
     _section("Choose your next step", "Each workspace keeps the decision small and clear.")
@@ -1512,12 +1757,53 @@ if workspace == "Priorities":
     with green_col:
         _summary_card("GREEN", counts["GREEN"])
 
-    _section(
-        "Priority assets",
-        "Highest urgency and production consequence. Open one to review its evidence.",
-        f"{min(3, len(filtered))} of {len(filtered)} shown",
+    priority_page_size = 3
+    max_priority_offset = max(0, len(filtered) - priority_page_size)
+    priority_offset = min(
+        int(st.session_state.get("priority_asset_offset", 0)),
+        max_priority_offset,
     )
-    top_assets = filtered[:3]
+    st.session_state.priority_asset_offset = priority_offset
+    priority_end = min(priority_offset + priority_page_size, len(filtered))
+    priority_range = (
+        f"{priority_offset + 1}-{priority_end} of {len(filtered)} shown"
+        if filtered
+        else "0 of 0 shown"
+    )
+    section_title, section_controls = st.columns([1, 0.34], vertical_alignment="bottom")
+    with section_title:
+        _section(
+            "Priority assets",
+            "Highest urgency and production consequence. Open one to review its evidence.",
+            priority_range,
+        )
+    with section_controls:
+        previous, next_page = st.columns(2)
+        with previous:
+            if st.button(
+                "←",
+                key="priority_assets_previous",
+                help="Show previous priority assets",
+                disabled=priority_offset == 0,
+                use_container_width=True,
+            ):
+                st.session_state.priority_asset_offset = max(0, priority_offset - priority_page_size)
+                st.rerun()
+        with next_page:
+            if st.button(
+                "→",
+                key="priority_assets_next",
+                help="Show next priority assets",
+                disabled=priority_end >= len(filtered),
+                use_container_width=True,
+            ):
+                st.session_state.priority_asset_offset = min(
+                    max_priority_offset,
+                    priority_offset + priority_page_size,
+                )
+                st.rerun()
+
+    top_assets = filtered[priority_offset:priority_end]
     if top_assets:
         row = st.columns(len(top_assets))
         for column, asset in zip(row, top_assets):
@@ -1660,7 +1946,7 @@ elif workspace == "Asset review":
     hero_classes = f"lp-asset-hero {status.lower()}"
     if is_urgent:
         hero_classes += " lp-urgent"
-    warning_mark = '<span class="lp-warning-mark blink" aria-label="Critical warning">!</span>' if status == "RED" else ""
+    warning_mark = '<span class="lp-warning-mark blink" aria-label="Critical warning">⚠</span>' if status == "RED" else ""
     hero_html = (
         f'<div class="{hero_classes}" style="border-left:6px solid {STATUS_COLORS[status]}">'
         f'{warning_mark}'
@@ -1709,7 +1995,7 @@ elif workspace == "Asset review":
     elif review_view == "Evidence":
         _render_asset_evidence(asset, detail_envelope)
     else:
-        _render_owner_decision(service, selected_id, action)
+        _render_owner_decision(service, selected_id, action, active_user)
 
 
 elif workspace == "Work verification":
@@ -1736,7 +2022,7 @@ elif workspace == "Work verification":
         _metric_card("Verified resolved", resolved_count, "Closed learning loops", "✓")
 
     _section("Verify completed work", "Record what the technician observed. Only verified results update the operating view.")
-    if pending_cases:
+    if pending_cases and active_user["role"] == "Operator":
         with st.expander(f"Record completed work · {len(pending_cases)} case(s) ready", expanded=False):
             with st.form("outcome_form"):
                 pending_lookup = {
@@ -1769,6 +2055,7 @@ elif workspace == "Work verification":
                                 selected_case,
                                 outcome=outcome,
                                 notes=outcome_notes.strip(),
+                                verified_by=f"{active_user['login_id']} ({active_user['role']})",
                             )
                             result_map = _to_dict(result)
                             new_status = _get(result_map, "new_display_status", "new_status")
@@ -1780,6 +2067,8 @@ elif workspace == "Work verification":
                             st.rerun()
                         except Exception as exc:
                             _user_error("The outcome could not be recorded. Please retry.", exc)
+    elif pending_cases:
+        st.info("Maintainer workflow: monitor the verification queue. Operators record the technician-confirmed outcome here.")
     else:
         _empty_state("No work awaiting verification", "Approved and modified cases appear here after maintenance is completed.")
 
@@ -1794,7 +2083,11 @@ elif workspace == "Work verification":
 
 elif workspace == "Ask AI":
     selected_asset_for_chat = asset_by_id[st.session_state.selected_asset]
-    chat_context = build_assistant_context(overview, selected_asset_for_chat)
+    try:
+        chat_context = build_assistant_context(overview, selected_asset_for_chat)
+    except Exception as exc:
+        _user_error("The selected asset context could not be prepared for Ask AI.", exc)
+        chat_context = {}
 
     _section(
         "Ask AI",
@@ -1819,41 +2112,59 @@ elif workspace == "Ask AI":
             "◇",
         )
 
-    st.info(
-        "Ask AI explains synthetic dashboard evidence only. It does not control equipment "
-        "and does not replace a qualified maintenance decision."
+    st.markdown(
+        """<div class="lp-ai-notice"><div><strong>Decision-support boundary</strong>
+        Ask AI explains visible synthetic dashboard evidence. It does not control equipment or replace a qualified maintenance decision.</div></div>""",
+        unsafe_allow_html=True,
     )
     if not is_configured():
-        st.warning(
-            "The assistant is not configured. Add VW_LLM_CLIENT_ID, VW_LLM_CLIENT_SECRET, "
-            "and VW_LLM_API_KEY to .env, then restart the dashboard."
+        st.markdown(
+            """<div class="lp-ai-notice warning"><div><strong>Assistant unavailable</strong>
+            Add the VW LLM credentials to the local .env file and restart the dashboard.</div></div>""",
+            unsafe_allow_html=True,
         )
     else:
-        st.caption("VW LLM model: " + os.getenv("OPENAI_MODEL", "gpt-4o"))
+        st.markdown(
+            f"<div class='lp-ai-model'>Connected · { _h(os.getenv('OPENAI_MODEL', 'gpt-4o')) }</div>",
+            unsafe_allow_html=True,
+        )
 
-    if "linepulse_chat_messages" not in st.session_state:
-        st.session_state.linepulse_chat_messages = []
-    clear_col, _ = st.columns([1, 5])
-    with clear_col:
-        if st.button("Clear chat", key="ask_ai_clear", use_container_width=True):
-            st.session_state.linepulse_chat_messages = []
-            st.rerun()
+    chat_by_asset = st.session_state.setdefault("linepulse_chat_messages_by_asset", {})
+    chat_messages = chat_by_asset.setdefault(selected_asset_for_chat["asset_id"], [])
 
-    for message in st.session_state.linepulse_chat_messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+    with st.container(key="ask_chat_surface"):
+        chat_head, chat_action = st.columns([4, 1])
+        with chat_head:
+            st.markdown(
+                "<div class='lp-ai-chat-title'>Conversation</div><div class='lp-ai-chat-copy'>Ask about the selected asset, its evidence, alert, or planning horizon.</div>",
+                unsafe_allow_html=True,
+            )
+        with chat_action:
+            if st.button("Clear chat", key="ask_ai_clear", use_container_width=True):
+                chat_by_asset[selected_asset_for_chat["asset_id"]] = []
+                st.rerun()
+
+        if not chat_messages:
+            st.markdown(
+                "<div class='lp-ai-empty'><div><strong>Start the conversation</strong>Ask why this asset is flagged, what evidence matters, or what the next safe review step should be.</div></div>",
+                unsafe_allow_html=True,
+            )
+        else:
+            for message in chat_messages:
+                with st.chat_message(message["role"]):
+                    st.markdown(message["content"])
 
     question = st.chat_input("Ask about the selected asset, its alert, or the maintenance workflow")
     if question:
-        st.session_state.linepulse_chat_messages.append({"role": "user", "content": question})
+        chat_messages.append({"role": "user", "content": question})
         with st.chat_message("user"):
             st.markdown(question)
         with st.chat_message("assistant"):
             with st.spinner("Reviewing the dashboard evidence…"):
                 try:
-                    answer = answer_question(st.session_state.linepulse_chat_messages, chat_context)
+                    answer = answer_question(chat_messages, chat_context)
                     st.markdown(answer)
-                    st.session_state.linepulse_chat_messages.append(
+                    chat_messages.append(
                         {"role": "assistant", "content": answer}
                     )
                 except AssistantUnavailableError as exc:

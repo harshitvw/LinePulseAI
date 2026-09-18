@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import httpx
@@ -12,6 +13,7 @@ from dotenv import load_dotenv
 DEFAULT_MODEL = "gpt-4o"
 IDP_TOKEN_URL = "https://idp.cloud.vwgroup.com/auth/realms/kums-mfa/protocol/openid-connect/token"
 LLM_BASE_URL = "https://llmapi.ai.vwgroup.com"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MAX_HISTORY_MESSAGES = 8
 MAX_MESSAGE_CHARS = 2_000
 
@@ -23,7 +25,8 @@ class AssistantUnavailableError(RuntimeError):
 def _load_environment() -> None:
     """Load local credentials without overwriting explicitly exported values."""
 
-    load_dotenv(override=False)
+    load_dotenv(PROJECT_ROOT / ".env", override=False)
+    load_dotenv(PROJECT_ROOT / "env", override=False)
 
 
 def is_configured() -> bool:

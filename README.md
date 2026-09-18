@@ -66,11 +66,15 @@ Then open:
 - API health: <http://127.0.0.1:8000/api/v1/health>
 - API documentation: <http://127.0.0.1:8000/docs>
 
+The dashboard opens with a role login. The demo accounts are `Harshit` / `harshit123` and `Rahul` / `rahul123` as Maintainers, plus `Deepak` / `deepak123` and `Nikhil` / `nikhil123` as Operators. Configure different accounts before sharing the app with `LINEPULSE_HARSHIT_ID`, `LINEPULSE_HARSHIT_PASSWORD`, `LINEPULSE_RAHUL_ID`, `LINEPULSE_RAHUL_PASSWORD`, `LINEPULSE_DEEPAK_ID`, `LINEPULSE_DEEPAK_PASSWORD`, `LINEPULSE_NIKHIL_ID`, and `LINEPULSE_NIKHIL_PASSWORD`. The signed-in ID and role are written into the human decision and verified-outcome audit fields.
+
+Workflow ownership is explicit: Maintainers review evidence and approve, modify, or reject recommendations in Asset review. Operators review the approved action and record the technician-confirmed outcome in Work verification. Both roles can inspect the full audit trail, but only the assigned role can submit its workflow action.
+
 If port 8501 is already used, run the frontend with `--server.port 8502` and open <http://127.0.0.1:8502>.
 
 ## OpenAI conversational assistant
 
-The optional **Ask AI** workspace answers questions about the selected Class A asset, its visible evidence, alerts, planning horizon, recommendation, and the human decision workflow. It uses the VW LLM gateway's Chat Completions API. Add the credentials to a local `.env` file (never commit it):
+The optional **Ask AI** workspace answers questions about the selected Class A asset, its visible evidence, alerts, planning horizon, recommendation, and the human decision workflow. It uses the VW LLM gateway's Chat Completions API. Add the credentials to a local `.env` file or `env` file (never commit either file):
 
 ```dotenv
 VW_LLM_CLIENT_ID=your_cloudidp_client_id

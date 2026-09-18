@@ -1,0 +1,8 @@
+# Optional overrides. The local defaults work without this file.
+LINEPULSE_DATA_PATH=data/source/Synthetic_Dataset.xlsx
+LINEPULSE_MODEL_PATH=artifacts/degradation_model.joblib
+LINEPULSE_DB_PATH=runtime/linepulse.db
+VW_LLM_CLIENT_ID="idp-99629305-eb32-4450-af6d-0762ac02ca2b-llmaas-app"
+VW_LLM_CLIENT_SECRET="cidps_lWOI5rXq9WyH8NuMidjiNDKByVT4Vd2zehop7CxYcaVfXYwE4qbB1HYBfo"
+VW_LLM_API_KEY=sk-I-p9cgumY8fwLF5IEMihjA
+OPENAI_MODEL=gpt-4o
