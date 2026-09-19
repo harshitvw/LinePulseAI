@@ -1,41 +1,80 @@
-# LinePulse AI
+LinePulse AI
 
-LinePulse AI is a human-in-the-loop maintenance decision-support prototype for Class A assembly-line assets. It turns the official hackathon workbook into a ranked attention queue, explains the evidence behind each alert, estimates a **planning horizon**, recommends a safe next action, and records the Equipment Owner's decision. It never writes to equipment or automatically shuts anything down.
+LinePulse AI is a human-controlled maintenance decision workspace for Class A assembly-line assets. It turns the organizer-provided synthetic workbook into a ranked attention queue, explains the evidence behind each alert, estimates a planning horizon, recommends a safe next action, and records the maintainer's decision and the operator's verified outcome.
 
-The analytical source of truth is the three files supplied in the official organizer pack:
+The prototype never writes to equipment, creates an automatic work order, or issues a shutdown command.
 
-- `Synthetic_Dataset.xlsx` for model training and runtime analysis
-- `Participant_Guide.docx` for the challenge and judging requirements
-- `Synthetic_Dataset_Report.docx` for the dataset semantics and known data-quality cases
+What works today
 
-The LinePulse AI name and human-control principle continue the team's submitted concept, but the official guide, report, and workbook override any older mock scope or sample values. No earlier dataset, real factory data, hidden answer key, asset-ID rule, OpenAI key, Ignition connection, Docker service, or EC2 instance is required.
+Scores and prioritizes all 45 supplied Class A assets.
 
-## What makes this prototype different
+Shows red, amber, and green attention states with a traceable reason and planning horizon.
 
-- **Evidence Passport:** every alert shows the measured value, recent change, peer-derived warning boundary, source sheet, and confidence.
-- **Two-layer decision:** technical degradation risk is shown separately from business impact, then combined into an attention priority.
-- **Honest prediction:** an auxiliary XGBoost model learns the workbook's seeded degradation pattern as display-only corroboration; it has 0% RAG weight. Status remains signal/trend driven, and the displayed days are a planning horizon—not claimed remaining useful life.
-- **Data-trust gate:** missing, duplicate, or orphaned records reduce confidence and are surfaced. Missing data never silently means healthy.
-- **Human authority:** the maintenance team may approve, modify, or reject a recommendation. No equipment-control function exists.
+Separates technical condition risk from business impact.
 
-## Run it on Windows PowerShell
+Provides an Evidence Passport with source field, current value, trend, peer warning boundary, and data-quality limitations.
 
-Use Python 3.12. The simplest path (when a process-scoped script-policy override is permitted) is:
+Suggests a failure-mode hypothesis and maintenance action.
 
-```powershell
-cd C:\path\to\LinePulse_AI
+Supports Maintainer approval, modification, or rejection with mandatory rationale.
+
+Supports Operator verification as resolved, partial, or unresolved.
+
+Preserves the original model assessment when a verified outcome changes the workflow display.
+
+Stores decisions and outcomes in a local SQLite audit trail.
+
+Provides a reversible synthetic live-data replay and a non-persistent what-if view.
+
+Provides an optional VW LLM assistant that answers questions using only the selected asset and visible portfolio context.
+
+Exposes the same service through an optional FastAPI adapter.
+
+Data and modelling position
+
+The analytical source of truth is the organizer pack:
+
+data/source/Synthetic_Dataset.xlsx
+
+reference/Participant_Guide.docx
+
+reference/Synthetic_Dataset_Report.docx
+
+The workbook contains 45 Class A assets across six linked operational sheets and three weekly snapshots. It is 100% synthetic.
+
+The trained XGBoost classifier is an auxiliary seeded-degradation detector. It uses the supplied ScenarioFlag only to construct its training target, never as an input feature. Its output is display-only corroboration with 0% weight in red, amber, green, technical risk, or planning horizon.
+
+The operational assessment comes from transparent signal levels, recent trends, peer-derived warning boundaries, maintenance urgency, lifecycle usage, quality context, and business impact. The displayed days are a planning horizon, not certified remaining useful life or a guaranteed failure date.
+
+User workflow
+
+Home shows the portfolio, current priorities, workflow counts, and recent decisions.
+
+Priorities ranks all Class A assets by current attention priority.
+
+Asset review shows one asset's condition, Evidence Passport, recommendation, and Maintainer decision gate.
+
+Work verification lets an Operator record the technician-confirmed result.
+
+Ask AI explains the selected asset in plain language from bounded dashboard context.
+
+Maintainers can record approve, modify, or reject decisions. Operators can record verified outcomes. Both roles can inspect the audit history. Neither role can control equipment through LinePulse AI.
+
+Quick start on Windows
+
+Use Python 3.12.
+
+cd C:\path\to\LinePulseAI-main
+Get-ChildItem -Recurse | Unblock-File
 Set-ExecutionPolicy -Scope Process Bypass
 .\setup.ps1
 .\run_app.ps1
-```
 
-Open <http://localhost:8501>. `setup.ps1` creates the environment, installs dependencies, trains the model, and runs the tests. `run_app.ps1` starts the complete dashboard through the shared service layer; the separate API is optional.
+Open http://localhost:8501.
 
-If corporate policy blocks PowerShell scripts, use these manual commands. They do not require virtual-environment activation:
+If corporate policy blocks PowerShell scripts, run:
 
-```powershell
-cd C:\path\to\LinePulse_AI
-
+cd C:\path\to\LinePulseAI-main
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -e .
@@ -44,81 +83,118 @@ $env:PYTHONPATH = "$PWD\src"
 .\.venv\Scripts\python.exe scripts\train_model.py
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 .\.venv\Scripts\python.exe scripts\smoke_test.py
-```
-
-Start the dashboard:
-
-```powershell
-$env:PYTHONPATH = "$PWD\src"
 .\.venv\Scripts\python.exe -m streamlit run dashboard\app.py
-```
 
-The dashboard uses the same service layer as the API and does not need the API process. For an integration/API demonstration, open a second terminal and run:
+The Streamlit application calls the shared Python service directly. FastAPI is optional.
 
-```powershell
+Optional API
+
+Start the API in a second terminal:
+
 $env:PYTHONPATH = "$PWD\src"
 .\.venv\Scripts\python.exe -m uvicorn api.main:app --host 127.0.0.1 --port 8000
-```
 
-Then open:
+Health: http://127.0.0.1:8000/api/v1/health
 
-- Dashboard: <http://localhost:8501>
-- API health: <http://127.0.0.1:8000/api/v1/health>
-- API documentation: <http://127.0.0.1:8000/docs>
+Readiness: http://127.0.0.1:8000/api/v1/readiness
 
-The dashboard opens with a role login. The demo accounts are `Harshit` / `harshit123` and `Rahul` / `rahul123` as Maintainers, plus `Deepak` / `deepak123` and `Nikhil` / `nikhil123` as Operators. Configure different accounts before sharing the app with `LINEPULSE_HARSHIT_ID`, `LINEPULSE_HARSHIT_PASSWORD`, `LINEPULSE_RAHUL_ID`, `LINEPULSE_RAHUL_PASSWORD`, `LINEPULSE_DEEPAK_ID`, `LINEPULSE_DEEPAK_PASSWORD`, `LINEPULSE_NIKHIL_ID`, and `LINEPULSE_NIKHIL_PASSWORD`. The signed-in ID and role are written into the human decision and verified-outcome audit fields.
+OpenAPI: http://127.0.0.1:8000/docs
 
-Workflow ownership is explicit: Maintainers review evidence and approve, modify, or reject recommendations in Asset review. Operators review the approved action and record the technician-confirmed outcome in Work verification. Both roles can inspect the full audit trail, but only the assigned role can submit its workflow action.
+The API has no equipment-control endpoint.
 
-If port 8501 is already used, run the frontend with `--server.port 8502` and open <http://127.0.0.1:8502>.
+Optional Ask AI configuration
 
-## OpenAI conversational assistant
+The core risk-to-recommendation workflow works without an LLM. To enable the optional conversational assistant, create a local .env file:
 
-The optional **Ask AI** workspace answers questions about the selected Class A asset, its visible evidence, alerts, planning horizon, recommendation, and the human decision workflow. It uses the VW LLM gateway's Chat Completions API. Add the credentials to a local `.env` file or `env` file (never commit either file):
-
-```dotenv
 VW_LLM_CLIENT_ID=your_cloudidp_client_id
 VW_LLM_CLIENT_SECRET=your_cloudidp_client_secret
 VW_LLM_API_KEY=your_vw_virtual_key
 OPENAI_MODEL=gpt-4o
-```
 
-Restart the dashboard, then open **Ask AI**. For each request, the app obtains a short-lived CloudIDP token, then creates `OpenAI(api_key=token, base_url="https://llmapi.ai.vwgroup.com", default_headers={"X-LLM-API-CLIENT-ID": "Bearer ..."})` and calls `chat.completions.create(...)`. It receives only the dashboard's portfolio summary and selected-asset evidence. It does not control equipment, access local files, or replace a qualified maintenance decision.
+Never put live credentials in a file named env, source code, screenshots, documentation, Git history, or the submission ZIP. Rotate a key immediately if it has been shared or packaged.
 
-See [docs/ASK_AI.md](docs/ASK_AI.md) for setup, feature behavior, safety boundaries, verification, and troubleshooting.
+The assistant receives only a small portfolio summary and the selected asset's current evidence. It cannot access local files, query equipment, change decisions, or issue commands. See docs/ASK_AI.md.
 
-## Live data simulator
+Synthetic live replay
 
-For a timed synthetic sensor replay during the demo, use [docs/LIVE_DATA_SIMULATOR.md](docs/LIVE_DATA_SIMULATOR.md). It appends increasing temperature, vibration, current, cycle-time, and pressure signals to the workbook, creates a backup before modifying the original file, and provides a cleanup command to restore it afterward.
+Start the dashboard, then run this in a second terminal:
 
-## Five-minute explanation
+.\.venv\Scripts\python.exe scripts\live_demo_replay.py start --steps 6 --interval 5
 
-1. The official workbook contains 45 critical assets and three weekly observations across six operational sheets.
-2. The data pipeline joins sensor, usage, maintenance, production, quality, and asset-impact context without depending on particular asset IDs.
-3. An auxiliary trained XGBoost classifier estimates how strongly the current evidence resembles the workbook's seeded degradation cases. `ScenarioFlag` is used only as the training target and is never an input feature. The model is display-only corroboration with 0% RAG weight, so core status/horizon logic works without it.
-4. Transparent peer-relative level and trend calculations estimate *why* an asset is concerning and how soon a data-derived warning boundary may be reached.
-5. Technical risk and business impact are kept visible and combined into an attention priority, so the maintenance team knows what to examine first.
-6. Red, amber, and green are real card colors. Hover over each `?` to see the classification reason and estimated days remaining.
-7. The Equipment Owner makes the decision. The system records it for audit and future learning but has no equipment-write capability.
+The replay adds increasing synthetic temperature, vibration, current, cycle-time, and pressure conditions to five assets. It is not a plant or historian connection. Restore the original workbook after the demo:
 
-## Project map
+.\.venv\Scripts\python.exe scripts\live_demo_replay.py cleanup
 
-| Location | Purpose |
-|---|---|
-| `data/source/Synthetic_Dataset.xlsx` | Unmodified official model/data source |
-| `src/linepulse/` | Data validation, feature engineering, model inference, scoring, explanations, and decision logic |
-| `scripts/train_model.py` | Trains and saves the XGBoost degradation detector |
-| `scripts/live_demo_replay.py` | Reversible synthetic live-signal replay for the demo |
-| `artifacts/degradation_model.joblib` | Generated model bundle and metadata; reproducible from the official workbook |
-| `api/main.py` | Optional FastAPI integration adapter |
-| `dashboard/app.py` | Streamlit frontend using the same core service directly |
-| `runtime/linepulse.db` | Local SQLite audit trail of human decisions/outcomes; created at runtime |
-| `tests/` | Unit, API, data-quality, and generalization checks |
-| `docs/` | Beginner guide, architecture, assumptions, demo script, model card, and data dictionary |
-| `reference/` | Organizer guide and dataset report, kept for traceability |
+See docs/LIVE_DATA_SIMULATOR.md.
 
-Start with [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md) if you are new to the project. Use [docs/DEMO_WALKTHROUGH.md](docs/DEMO_WALKTHROUGH.md) before presenting to judges. Use [docs/LIVE_DATA_SIMULATOR.md](docs/LIVE_DATA_SIMULATOR.md) for the synthetic live replay.
+Project map
 
-## Safety and scope
+Location
 
-LinePulse AI is a hackathon prototype trained on 100% synthetic data. Its boundaries are **project-derived warning boundaries**, not OEM safety limits. Its planning horizon is not validated remaining useful life. It supports inspection and planning; it must not be used by itself for a shutdown or maintenance decision.
+Purpose
+
+dashboard/app.py
+
+Streamlit UI, login, role-aware workflow, and Ask AI workspace
+
+src/linepulse/data.py
+
+Workbook validation, joins, data-quality checks, and feature table
+
+src/linepulse/analytics.py
+
+XGBoost training, validation, model metadata, and artifact loading
+
+src/linepulse/risk.py
+
+Transparent risk, impact, horizon, evidence, and recommendation logic
+
+src/linepulse/service.py
+
+Shared application service and human workflow rules
+
+src/linepulse/openai_assistant.py
+
+Bounded VW LLM gateway client and assistant context
+
+src/linepulse/repository.py
+
+SQLite decision and outcome audit trail
+
+api/main.py
+
+Optional FastAPI integration adapter
+
+scripts/live_demo_replay.py
+
+Reversible synthetic signal replay
+
+scripts/demo_preflight.py
+
+Submission and demo readiness checks
+
+tests/
+
+Core, generalization, API, and assistant contract tests
+
+docs/
+
+Architecture, assumptions, model card, data dictionary, guides, and demo script
+
+Documentation
+
+Start with docs/PROJECT_GUIDE.md for the full technical and presentation guide.
+
+Use docs/DEMO_WALKTHROUGH.md to record or present the demo.
+
+Use docs/ARCHITECTURE.md for system boundaries and data flow.
+
+Use docs/MODEL_CARD.md for model claims and limitations.
+
+Use docs/ASSUMPTIONS.md for safe claims.
+
+Use docs/ASK_AI.md for VW LLM setup and safety.
+
+Safe claims
+
+LinePulse AI demonstrates an end-to-end, evidence-grounded maintenance decision workflow on the supplied synthetic data. It does not demonstrate production failure accuracy, certified safety limits, exact remaining useful life, guaranteed downtime reduction, or autonomous maintenance.
